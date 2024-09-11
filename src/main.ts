@@ -1,38 +1,43 @@
 import Hls from "hls.js";
 import { readAndDecryptFile } from "./decipher.js";
 
-// url 前缀
-const urlPrefix = "/encrypt";
+const m3u8FilePath = "/encrypt/index.m3u8"; // 原始加密 m3u8 文件路径
 
 // 加密 m3u8 文件的播放方式
 if (Hls.isSupported()) {
-  const m3u8FilePath = "/index.m3u8"; // 原始加密 m3u8 文件路径
-  // 使用示例
-  const blobUrl = await readAndDecryptFile(urlPrefix, m3u8FilePath);
-
   const video = document.getElementById("video") as HTMLVideoElement; // 明确指定类型
-  const hls = new Hls();
 
-  hls.loadSource(blobUrl);
+  class CustomLoader extends Hls.DefaultConfig.loader {
+    constructor(config) {
+      super(config);
+      const load = this.load.bind(this);
+
+      this.load = async function (context, config, callbacks) {
+        const onSuccess = callbacks.onSuccess;
+        callbacks.onSuccess = async function (response, stats, context) {
+          try {
+            const decryptedData = await readAndDecryptFile(context.url);
+            response.data = decryptedData;
+            onSuccess(response, stats, context, null);
+          } catch (err) {
+            console.error(err);
+          }
+        };
+        load(context, config, callbacks);
+      };
+    }
+  }
+
+  const hls = new Hls({ loader: CustomLoader });
+
+  hls.loadSource(m3u8FilePath);
   hls.attachMedia(video);
-  // 在 FRAG_LOADING 事件中处理 TS 文件请求
-  hls.on(Hls.Events.FRAG_LOADING, async (event, data) => {
-    const originalUrl = data.frag.url;
-
-    // 处理 TS 文件的 URL，例如修改 URL
-    const modifiedUrl = originalUrl.replace(`blob:${window.location.origin}`, "");
-
-    // 直接解密新的 URL，而不请求原来的地址
-    const decryptedBlobUrl = await readAndDecryptFile(urlPrefix, modifiedUrl);
-    data.frag.url = decryptedBlobUrl; // 更新请求的 URL
-  });
 
   // 添加用户交互事件以允许播放
-  document.addEventListener("click", function() {
-      // 直接使用解密后的 .ts 文件地址
-      video.addEventListener("loadedmetadata", function () {
-        video.play();
-      });
+  document.addEventListener("click", function () {
+    video.addEventListener("loadedmetadata", function () {
+      video.play();
+    });
   });
 }
 
