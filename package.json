@@ -1,0 +1,20 @@
+{
+  "name": "hls",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "hls.js": "^1.5.15"
+  },
+  "devDependencies": {
+    "vite": "^5.4.3"
+  }
+}
