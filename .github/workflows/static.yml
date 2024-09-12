@@ -35,7 +35,8 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Build Project
         run: |
-          pnpm install
+          npm install -g pnpm
+          pnpm i
           pnpm build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
