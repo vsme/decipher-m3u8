@@ -35,9 +35,11 @@ if (Hls.isSupported()) {
 
   // 添加用户交互事件以允许播放
   document.addEventListener("click", function () {
-    video.addEventListener("loadedmetadata", function () {
+    const onLoadedMetadata = function () {
       video.play();
-    });
+      video.removeEventListener("loadedmetadata", onLoadedMetadata);
+    };
+    video.addEventListener("loadedmetadata", onLoadedMetadata);
   });
 }
 
