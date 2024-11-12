@@ -6,19 +6,11 @@ const keyHex = "1234567890ABCDEF"
   .map((c) => c.charCodeAt(0).toString(16))
   .join("");
 
-// 将十六进制密钥转换为字节数组
-function hexToUtf8(hex) {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-  }
-  return CryptoJS.enc.Utf8.parse(String.fromCharCode.apply(null, bytes));
-}
+// 将十六进制密钥转换为 CryptoJS 可用的格式
+const key = CryptoJS.enc.Hex.parse(keyHex);
 
-const key = hexToUtf8(keyHex);
-
-// 解密 m3u8 文件
-function decryptAES(encryptedData) {
+// 通用 AES 解密函数
+function decryptAES(encryptedData, outputType = "utf8") {
   // 将二进制数据转换为 WordArray
   const wordArray = CryptoJS.lib.WordArray.create(encryptedData);
 
@@ -31,43 +23,28 @@ function decryptAES(encryptedData) {
     }
   );
 
-  return decrypted.toString(CryptoJS.enc.Utf8);
+  // 根据输出类型返回相应格式的数据
+  return outputType === "utf8"
+    ? decrypted.toString(CryptoJS.enc.Utf8)
+    : new Uint8Array(
+        decrypted.words
+          .map((word) => [
+            (word >> 24) & 0xff,
+            (word >> 16) & 0xff,
+            (word >> 8) & 0xff,
+            word & 0xff,
+          ])
+          .flat()
+      );
 }
 
-// 解密 TS 文件
-function decryptTSAES(encryptedData) {
-  // 将二进制数据转换为 WordArray
-  const wordArray = CryptoJS.lib.WordArray.create(encryptedData);
-
-  const decrypted = CryptoJS.AES.decrypt(
-    wordArray.toString(CryptoJS.enc.Base64),
-    key,
-    {
-      mode: CryptoJS.mode.ECB,
-      padding: CryptoJS.pad.Pkcs7,
-    }
-  );
-
-  return new Uint8Array(
-    decrypted.words
-      .map((word) => [
-        (word >> 24) & 0xff,
-        (word >> 16) & 0xff,
-        (word >> 8) & 0xff,
-        word & 0xff,
-      ])
-      .flat()
-  );
-}
-
-// 示例：读取加密文件并解密
+// 读取并解密文件，根据文件类型选择解密方式
 export async function readAndDecryptFile(file) {
   const response = await fetch(file);
   const encryptedData = await response.arrayBuffer(); // 以二进制格式读取
 
-  const decryptedData = file.endsWith(".m3u8")
-    ? decryptAES(encryptedData)
-    : decryptTSAES(encryptedData);
-
-  return decryptedData;
+  // 解密为 UTF-8 字符串（m3u8）或 Uint8Array（二进制 ts 文件）
+  return file.endsWith(".m3u8")
+    ? decryptAES(encryptedData, "utf8")
+    : decryptAES(encryptedData, "binary");
 }

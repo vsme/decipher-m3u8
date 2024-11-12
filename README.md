@@ -18,16 +18,16 @@
 
 1. **安装依赖**:
     ```bash
-    pnpm i
+    npm i
     ```
 
 2. **启动开发服务器**:
     ```bash
-    pnpm dev
+    npm run dev
     ```
 
 3. **访问项目**:
-    打开浏览器并访问 `http://localhost:3000`，你会看到一个 video 元素。
+    打开浏览器访问控制台打印的地址，你会看到一个 video 元素。
 
 4. **播放加密视频**:
     - 项目会自动读取并解密 `public/encrypt/index.m3u8` 文件，然后通过 HLS.js 播放解密后的内容。
